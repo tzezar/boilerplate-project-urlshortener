@@ -83,12 +83,20 @@ app.post('/api/shorturl', async function (req, res) {
 
 
 // Redirect to original URL
-app.get('/api/shorturl/:shortUrl', function (req, res) {
+app.get('/api/shorturl/:shortUrl', async function (req, res) {
   const shortUrl = parseInt(req.params.shortUrl);
+  console.log(`Received request to redirect short URL: ${shortUrl}`);
 
-  db.collection('urls').findOne({ short_url: shortUrl }, (err, urlDoc) => {
-    if (err) throw err;
-    if (!urlDoc) return res.json({ error: 'No short URL found' });
+  try {
+    const urlDoc = await db.collection('urls').findOne({ short_url: shortUrl });
+    if (!urlDoc) {
+      console.log(`No URL found for short URL: ${shortUrl}`);
+      return res.json({ error: 'No short URL found' });
+    }
+    console.log(`Redirecting to original URL: ${urlDoc.original_url}`);
     res.redirect(urlDoc.original_url);
-  });
+  } catch (err) {
+    console.error('Error during database query:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
 });
